@@ -1,0 +1,56 @@
+# Node modules
+node_modules/
+**/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build folders
+build/
+dist/
+frontend/build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache
+.npm
+
+# Coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Python cache (if any scripts exist)
+__pycache__/
+*.pyc
+
+# Tailwind cache
+.cache/
+
+# dotenv
+backend/.env
+bot-engine/.env
+
+rrvenv/
