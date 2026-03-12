@@ -4,7 +4,7 @@ git clone https://github.com/Harsh-NE/russianroulette.git
 
 cd russianroulette
 
-3. Install dependencies
+2. Install dependencies
 
 Backend:
 
