@@ -1,5 +1,5 @@
-const OPENROUTER_API_KEY =
-  "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";
+require("dotenv").config();
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 const express = require("express");
 const cors = require("cors");
