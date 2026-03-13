@@ -36,14 +36,14 @@ npm install
 
 ```
 cd backend
-npm start
+node server
 ```
 
 **Start bot engine**
 
 ```
 cd ../bot-engine
-npm start
+node server
 ```
 
 **Start frontend**
