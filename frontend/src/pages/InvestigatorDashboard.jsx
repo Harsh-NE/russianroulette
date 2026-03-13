@@ -9,6 +9,39 @@ const InvestigatorDashboard = () => {
   const navigate = useNavigate();
 
   const roomCode = localStorage.getItem("roomCode");
+  
+ useEffect(() => {
+  let startTime = localStorage.getItem("gameStartTime");
+
+  if (!startTime) {
+    // New game session
+    startTime = Date.now();
+    localStorage.setItem("gameStartTime", startTime);
+  }
+
+  startTime = parseInt(startTime, 10);
+
+  // Set initial timeLeft immediately
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  setTimeLeft(Math.max(0, 18 * 60 - elapsed));
+
+  const interval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const remaining = 18 * 60 - elapsed;
+
+    if (remaining <= 0) {
+      setTimeLeft(0);
+      localStorage.removeItem("gameStartTime"); // clear session
+      navigate("/guess_frontend");
+    } else {
+      setTimeLeft(remaining);
+    }
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [navigate]);
+
+
 
   // Load visited slots from DB
   const loadVisited = async () => {
@@ -25,19 +58,6 @@ const InvestigatorDashboard = () => {
     loadVisited();
   }, []);
 
-  // Timer countdown
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      navigate('/guess_frontend');
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeLeft, navigate]);
 
   // Format time as MM:SS
   const formatTime = () => {
@@ -66,6 +86,7 @@ const InvestigatorDashboard = () => {
   };
 
   const handleGuessClick = () => {
+    localStorage.removeItem("gameStartTime");
     navigate('/guess_frontend');
   };
 

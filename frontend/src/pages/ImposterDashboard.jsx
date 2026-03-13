@@ -93,7 +93,7 @@ const ImposterDashboard = () => {
 
       const formatted = (res.data.messages || []).map(m => ({
         text: m.text,
-        isBot: m.sender === "investigator"
+        sender: m.sender
       }));
 
       setMessages(formatted);
@@ -143,7 +143,7 @@ const ImposterDashboard = () => {
     if (!inputEnabled) return;
     setMessages(prev => [
       ...prev,
-      { text: message, isBot: false }
+      { text: message, sender: "imposter" }
     ]);
 
     try {
@@ -151,7 +151,8 @@ const ImposterDashboard = () => {
       await API.post("/chat/send", {
         roomCode: roomCode,
         targetPosition: imposterSlot,
-        message: message
+        message: message,
+        sender:"imposter"
       });
 
     } catch (err) {

@@ -1,16 +1,7 @@
-import { useEffect, useRef } from 'react';
 import MessageBubble from './MessageBubble';
 
 const ChatBox = ({ messages, loading }) => {
-  const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[400px] max-h-[500px] bg-gray-900 rounded-lg">
@@ -18,7 +9,7 @@ const ChatBox = ({ messages, loading }) => {
         <MessageBubble
           key={index}
           message={msg.text}
-          isBot={msg.isBot}
+          sender={msg.sender}
         />
       ))}
       {loading && (
@@ -32,7 +23,6 @@ const ChatBox = ({ messages, loading }) => {
           </div>
         </div>
       )}
-      <div ref={messagesEndRef} />
     </div>
   );
 };

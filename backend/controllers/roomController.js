@@ -26,6 +26,9 @@ async function generateRoomCode() {
   return code;
 }
 
+
+
+
 exports.createRoom = async (req, res) => {
 
   try {
@@ -38,22 +41,7 @@ exports.createRoom = async (req, res) => {
 
     await room.save();
 
-    const botPositions = [1,2,4,6];
 
-
-    for (let pos of botPositions) {
-
-  const bot = new Player({
-    playerId: "bot_" + pos + "_" + roomCode,
-    name: `Bot ${pos}`,
-    roomCode,
-    type: "bot",
-    position: pos
-  });
-
-
-      await bot.save();
-    }
 
     const gameState = new GameState({
       roomCode
@@ -74,119 +62,100 @@ exports.createRoom = async (req, res) => {
 
 };
 exports.joinRoom = async (req, res) => {
-
   try {
-
     const { roomCode, name } = req.body;
 
     const room = await Room.findOne({ roomCode });
+    if (!room) return res.status(404).json({ message: "Room not found" });
 
-    if (!room) {
+    const existingPlayers = await Player.find({ roomCode, type: "human" });
+    if (existingPlayers.length >= 2)
+      return res.status(400).json({ message: "Room full" });
 
-      return res.status(404).json({
-        message: "Room not found"
-      });
+    // Prevent duplicate names
+    const nameExists = await Player.findOne({ roomCode, name });
+    if (nameExists)
+      return res.status(400).json({ message: "Name already taken" });
 
-    }
-
-    const existingPlayers = await Player.find({
+    // Create player with minimal info (no role/position yet)
+    const player = new Player({
+      playerId: Date.now().toString(),
+      name,
       roomCode,
       type: "human"
     });
 
-    if (existingPlayers.length >= 2) {
-
-      return res.status(400).json({
-        message: "Room full"
-      });
-
-    }
-
-    const position = existingPlayers.length === 0 ? 3 : 5;
-
-    const player = new Player({
-      playerId: Date.now().toString(),
-      name: name,
-      roomCode,
-      type: "human",
-      position
-    });
-
     await player.save();
 
-    res.json({
-      success: true,
-      playerId: player.playerId,
-      position
-    });
-
+    res.json({ success: true, playerId: player.playerId });
   } catch (error) {
-
     res.status(500).json({ error: error.message });
-
   }
-
 };
 exports.selectRole = async (req, res) => {
-
   try {
-
     const { roomCode, name, role } = req.body;
 
-    const player = await Player.findOne({
-      roomCode,
-      name
-    });
-
+    // Find the human player
+    const player = await Player.findOne({ roomCode, name });
     if (!player) {
-      return res.status(404).json({
-        message: "Player not found"
-      });
+      return res.status(404).json({ message: "Player not found" });
     }
 
-    const roleCount = await Player.countDocuments({
-      roomCode,
-      role
-    });
-
-    if (role === "investigator" && roleCount >= 1) {
-      return res.status(400).json({
-        message: "Investigator already chosen"
-      });
+    // Check if role is already taken
+    const roleCount = await Player.countDocuments({ roomCode, role });
+    if ((role === "investigator" || role === "imposter") && roleCount >= 1) {
+      return res
+        .status(400)
+        .json({ message: `${role.charAt(0).toUpperCase() + role.slice(1)} already chosen` });
     }
 
-    if (role === "imposter" && roleCount >= 1) {
-      return res.status(400).json({
-        message: "Imposter already chosen"
-      });
-    }
+    // Update player's role
 
-    //  update role in Players collection
-    player.role = role;
-    await player.save();
-
-    // store imposter in Room table
     if (role === "imposter") {
+      // Assign random position 1-6 for imposter
+      const imposterPosition = Math.floor(Math.random() * 6) + 1;
+      player.position = imposterPosition;
+      player.role= "imposter";
+      // Create bots in remaining positions 1-6
+      const existingBots = await Player.find({ roomCode, type: "bot" });
+      if (existingBots.length === 0) {
+        const botPositions = [1, 2, 3, 4, 5, 6].filter(p => p !== imposterPosition);
+        const bots = botPositions.map(pos => ({
+          playerId: `bot_${pos}_${roomCode}`,
+          name: `Bot ${pos}`,
+          roomCode,
+          type: "bot",
+          position: pos
+        }));
+        await Player.insertMany(bots);
+      }
 
-      await Room.updateOne(
-        { roomCode },
-        { imposterPlayerId: player.playerId }
-      );
+      // Store imposter ID in Room
+      await Room.updateOne({ roomCode }, { imposterPlayerId: player.playerId });
 
+    } else if (role === "investigator") {
+      // Investigator always gets position 7
+      player.position = 7;
+      player.role = "investigator";
     }
+
+    await player.save();
 
     res.json({
       success: true,
       role,
+      position: player.position,
       playerId: player.playerId
     });
 
   } catch (error) {
-
-    res.status(500).json({ error: error.message });
-
+    console.error(error);
+    res.status(500).json({
+      error: error.message,
+      stack: error.stack
+    });
   }
-
 };
 exports.getRoomPlayers = async (req, res) => {
 

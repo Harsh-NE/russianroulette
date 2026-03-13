@@ -34,11 +34,12 @@ exports.sendMessage = async (req, res) => {
 
   try {
 
-    const { roomCode, targetPosition, message } = req.body;
+    const { roomCode, targetPosition, message, sender } = req.body;
 
+    const position = Number(targetPosition);  
     const target = await Player.findOne({
       roomCode,
-      position: targetPosition
+      position: position
     });
 
     if (!target) {
@@ -47,8 +48,8 @@ exports.sendMessage = async (req, res) => {
 
     const userMessage = new Message({
       roomCode,
-      targetPosition,
-      sender: "investigator",
+      targetPosition: position,
+      sender,
       text: message
     });
 
@@ -59,7 +60,7 @@ exports.sendMessage = async (req, res) => {
       const botResponse = await axios.post(
         "http://localhost:3001/bot-reply",
         {
-          slot: targetPosition,
+          slot: position,
           message: message
         }
       );
@@ -68,7 +69,7 @@ exports.sendMessage = async (req, res) => {
 
       const botMessage = new Message({
         roomCode,
-        targetPosition,
+        targetPosition: position,
         sender: "bot",
         text: reply
       });
@@ -82,7 +83,7 @@ exports.sendMessage = async (req, res) => {
 
     }
 
-    if (target.type === "imposter") {
+    if (target.role === "imposter") {
 
       return res.json({
         success: true,
@@ -107,7 +108,7 @@ exports.getChatHistory = async (req, res) => {
 
     const messages = await Message.find({
       roomCode,
-      targetPosition: position
+      targetPosition: Number(position)
     }).sort({ createdAt: 1 });
 
     res.json({

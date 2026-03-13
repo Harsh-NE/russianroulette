@@ -10,67 +10,98 @@ const ChatPage = () => {
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeSlot, setActiveSlot] = useState(null);
+  const [inputEnabled, setInputEnabled] = useState(false);
 
   const roomCode = localStorage.getItem("roomCode");
 
-  // OPEN CHAT + LOAD HISTORY
+  // ----------------------------
+  // 1️⃣ Open chat for this slot
+  // ----------------------------
   useEffect(() => {
-    const initChat = async () => {
+    const openChat = async () => {
       try {
-
         await API.post("/chat/open", {
-          roomCode: roomCode,
-          position: parseInt(slotId)
+          roomCode,
+          position: parseInt(slotId, 10),
         });
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    openChat();
+  }, [slotId, roomCode]);
 
+  // ----------------------------
+  // 2️⃣ Poll for active slot
+  // ----------------------------
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await API.get(`/game/visited/${roomCode}`);
+        const visited = res.data.visitedPositions || [];
+        if (visited.length > 0) setActiveSlot(visited[visited.length - 1]);
+      } catch (err) {
+        console.log(err);
+      }
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [roomCode]);
+
+  // ----------------------------
+  // 3️⃣ Enable input if active slot matches this slot
+  // ----------------------------
+  useEffect(() => {
+    if (activeSlot === parseInt(slotId, 10)) {
+      setInputEnabled(true);
+    } else {
+      setInputEnabled(false);
+    }
+  }, [activeSlot, slotId]);
+
+  // ----------------------------
+  // 4️⃣ Poll chat history
+  // ----------------------------
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
         const res = await API.get(`/chat/history/${roomCode}/${slotId}`);
-
-        // Convert backend format → frontend format
-        const formatted = (res.data.messages || []).map(m => ({
+        const formatted = (res.data.messages || []).map((m) => ({
           text: m.text,
-          isBot: m.sender !== "investigator"
+          sender: m.sender,
         }));
-
         setMessages(formatted);
-
       } catch (err) {
         console.log(err);
       }
     };
 
-    initChat();
-  }, [slotId]);
+    const interval = setInterval(fetchHistory, 1500);
+    return () => clearInterval(interval);
+  }, [slotId, roomCode]);
 
+  // ----------------------------
+  // 5️⃣ Send message
+  // ----------------------------
   const handleSendMessage = async (message) => {
-    // Show investigator message immediately
-    setMessages(prev => [
+    if (!inputEnabled) return;
+
+    setMessages((prev) => [
       ...prev,
-      { text: message, isBot: false }
+      { text: message, sender: "investigator" },
     ]);
 
-    setLoading(true);
-
     try {
-
-      const res = await API.post("/chat/send", {
-        roomCode: roomCode,
-        targetPosition: parseInt(slotId),
-        message: message
+      await API.post("/chat/send", {
+        roomCode,
+        targetPosition: parseInt(slotId, 10),
+        message,
+        sender: "investigator",
       });
-
-      // Bot reply
-      if (res.data.reply) {
-        setMessages(prev => [
-          ...prev,
-          { text: res.data.reply, isBot: true }
-        ]);
-      }
-
     } catch (err) {
       console.log(err);
     }
-
-    setLoading(false);
   };
 
   const handleReturn = () => {
@@ -79,7 +110,6 @@ const ChatPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col p-4 max-w-4xl mx-auto">
-
       <div className="flex items-center justify-between mb-4">
         <h1 className="stencil-text text-3xl font-bold">
           Compartment {slotId}
@@ -93,10 +123,16 @@ const ChatPage = () => {
         </button>
       </div>
 
+      <div className="bg-gray-900 p-4 rounded-lg mb-4">
+        <p className="text-sm text-gray-400">
+          {inputEnabled
+            ? "You can send messages in this compartment."
+            : "Waiting for this compartment to be active..."}
+        </p>
+      </div>
+
       <ChatBox messages={messages} loading={loading} />
-
-      <InputBar onSendMessage={handleSendMessage} disabled={false} />
-
+      <InputBar onSendMessage={handleSendMessage} disabled={!inputEnabled} />
     </div>
   );
 };
