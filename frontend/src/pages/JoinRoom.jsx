@@ -20,12 +20,25 @@ const JoinRoom = () => {
     localStorage.setItem("playerId", res.data.playerId);
     localStorage.setItem("roomCode", roomCode);
     localStorage.setItem("name", playerName);
-    localStorage.setItem("position", res.data.position);
+    //localStorage.setItem("position", res.data.position);
 
     navigate("/role");
 
   } catch (err) {
     alert("Room not found or full");
+    console.error("Join room error:", err);
+    if (err.response) {
+      console.error("Response data:", err.response.data);
+      console.error("Response status:", err.response.status);
+      console.error("Response headers:", err.response.headers);
+      alert(err.response.data?.message || "Room not found or full");
+    } else if (err.request) {
+      console.error("Request made but no response received:", err.request);
+      alert("No response from server");
+    } else {
+      console.error("Error setting up request:", err.message);
+      alert("Error: " + err.message);
+    }
   }
 };
 

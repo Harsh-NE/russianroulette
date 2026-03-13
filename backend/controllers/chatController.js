@@ -58,7 +58,7 @@ exports.sendMessage = async (req, res) => {
     if (target.type === "bot") {
 
       const botResponse = await axios.post(
-        "http://localhost:3001/bot-reply",
+        `${process.env.BOT_ENGINE_URL}/bot-reply`,
         {
           slot: position,
           message: message
