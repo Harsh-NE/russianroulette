@@ -12,9 +12,10 @@ const slotPersonalities = {
   3: "flirty",
   4: "gen z",
   5: "insecure",
+  6: "suspicious",
 };
 
-const IMPOSTER_SLOT = 6;
+//const IMPOSTER_SLOT = 6;
 const conversationMemory = {};
 const messageCount = {};
 
@@ -83,12 +84,12 @@ app.post("/bot-reply", async (req, res) => {
     });
   }*/
 
-  if (slot == IMPOSTER_SLOT) {
+  /*if (slot == IMPOSTER_SLOT) {
     return res.json({
       imposter: true,
       message: "Human should respond",
     });
-  }
+  }*/
 
   const botType = slotPersonalities[slot];
   const msg = userMessage.toLowerCase();
@@ -97,8 +98,7 @@ app.post("/bot-reply", async (req, res) => {
 
   const reply = await generateAIReply(memory, botType);
 
-  const delay = Math.floor(Math.random() * 3000) + 1000;
-
+  const delay = Math.floor(Math.random() * 20000) + 16000;
   setTimeout(() => {
     // save bot reply to memory
     conversationMemory[slot].push({
